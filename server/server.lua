@@ -4,23 +4,14 @@ server = {}
 server.running = false
 server.udp = socket.udp()
 server.delayCounter = 0
-server.updateRate = 1000 -- how often to requrest updates from the clients (in units of server:update() calls)
+server.updateRate = 10 -- how often to request updates from the clients (in units of server:update() calls)
 
 -- Contains all currently connected clients
 server.clients = {}
 
 -- Contains objects that clients might be interested in
+-- All objects are strings
 server.objects = {}
-
--- Converts given object to string
-function server:toString(object)
-    return object -- TODO: finish
-end
-
--- Turn string into an object
-function server:toObject(string)
-    return string -- TODO: finish
-end
 
 -- Sends updates to clients (this also requests update from clients)
 function server:updateClients()
@@ -28,10 +19,10 @@ function server:updateClients()
         -- A crude and simple version for now
         -- TODO: improve
         for i, object in ipairs(server.objects) do
-            if (not (client.objects[i] and client.objects[i] == server.objects[i])) then
-                server.udp:sendto(string.format("update %d %s", i, server:toString(object)), client.ip, client.port)
+            --if (not (client.objects[i] and client.objects[i] == server.objects[i])) then
+                server.udp:sendto(string.format("update %d %s", i, object), client.ip, client.port)
                 client.objects[i] = server.objects[i]
-            end
+            --end
         end
     end
 end
@@ -42,11 +33,10 @@ function server:update()
         if data then
             local id, cmd, index, object = data:match("^(%S*) (%S*) (%S*) (.*)")
             if cmd == "connect" then
-                print("New client connected: " .. id)
                 if (server.clients[id]) then
                     print("Error: client is already connected")
                 else
-                    print(id, "connected")
+                    print("New client connected: " .. id)
                     server.clients[id] = {
                         ip = ip,
                         port = port,
@@ -62,24 +52,22 @@ function server:update()
                     server.clients[id] = nil
                 end
             elseif cmd == "update" then
-                print("Client " .. id .. " sends updates")
+                --print("Client " .. id .. " sends updates")
                 if (not server.clients[id]) then
                     print("Error: client does not exist")
                 else
                     assert(index and object)
                     index = tonumber(index)
                     print("Update from ", id)
-                    print("Setting ", index, "to", object)
-
-                    object = server:toObject(object)
+                    --print("Setting ", index, "to", object)
 
                     server.objects[index] = object
                 end
             else
-                print("unrecognised command: " .. cmd)
+                print("unrecognised command: ", cmd)
             end
         elseif msg_or_ip ~= 'timeout' then
-            print("Unknown network error: " .. tostring(msg))
+            --print("Unknown network error: " .. tostring(msg))
         end
 
         socket.sleep(0.01)
@@ -96,6 +84,8 @@ end
 
 -- Start the server
 function server:start()
+    math.randomseed(os.time())
+
     server.udp:settimeout(0)
     server.udp:setsockname('*', 12345)
     server.running = true
