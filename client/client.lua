@@ -15,7 +15,7 @@ end
 
 -- Turn string into an object
 function client:toObject(string)
-    return object -- TODO: finish
+    return string -- TODO: finish
 end
 
 function client:connect()
@@ -53,6 +53,9 @@ function client:connect()
                     object = client:toObject(object)
 
                     client.objects[index] = object
+                    if (client.updates[index] and client.updates[index] == object) then
+                        client.updates[index] = nil
+                    end
                 else
                     print("unrecognised command: " .. cmd)
                 end

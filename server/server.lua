@@ -19,7 +19,7 @@ end
 
 -- Turn string into an object
 function server:toObject(string)
-    return object -- TODO: finish
+    return string -- TODO: finish
 end
 
 -- Sends updates to clients (this also requests update from clients)
