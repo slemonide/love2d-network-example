@@ -36,44 +36,55 @@ local function shift_log()
     end
 end
 
-while (true) do
-    stdscr:erase ()
-    stdscr:idcok(false)
-    stdscr:idlok(false)
+function main()
+    while (true) do
+        stdscr:erase ()
+        stdscr:idcok(false)
+        stdscr:idlok(false)
 
-    repeat
-        local data, msg = udp:receive()
-        if data then
-            local state, time, origin = data:match("^(%S*) (%S*) (.*)")
-            table.insert(log, {
-                updateNum = updateNum,
-                data = state,
-                time = time,
-                origin = origin,
-                delay = os.time() - tonumber(time)
-            })
-            shift_log()
-            updateNum = updateNum + 1
+        repeat
+            local data, msg = udp:receive()
+            if data then
+                local cmd, params = data:match("^(%S*) (.*)")
+                if (cmd == "update") then
+                    local state, time, origin = params:match("^(%S*) (%S*) (.*)")
+                    table.insert(log, {
+                        updateNum = updateNum,
+                        data = state,
+                        time = time,
+                        origin = origin,
+                        delay = os.time() - tonumber(time)
+                    })
+                    shift_log()
+                    updateNum = updateNum + 1
+                elseif (cmd == "id") then
+                    id = params
+                else
+                    err("Unknown command: " .. data)
+                end
+            end
+        until not data
+
+        if (math.random() > 0.9998) then
+            local msg = ""
+
+            for i = 1, 1000 do
+                msg = msg .. tostring(math.random(99999999))
+            end
+
+            udp:send(string.format("%d %s %s %s", os.time(), id, 'set', msg))
         end
-    until not data
 
-    if (math.random() > 0.9995) then
-        local msg = ""
-
-        for i = 1, 1000 do
-            msg = msg .. tostring(math.random(99999999))
+        stdscr:mvaddstr(0, 0, "Client id: " .. id)
+        stdscr:mvaddstr(1, 0, "Update    World State    Delay (ms)    Origin")
+        for i = 1, #log do
+            stdscr:mvaddstr(i + 1, 0, log[i].updateNum)
+            stdscr:mvaddstr (i + 1, 10, log[i].data:sub(0, 11))
+            stdscr:mvaddstr(i + 1, 25, log[i].delay)
+            stdscr:mvaddstr(i + 1, 39, log[i].origin)
         end
-
-        udp:send(string.format("%d %s %s %s", os.time(), id, 'set', msg))
+        stdscr:refresh ()
     end
-
-    stdscr:mvaddstr(0, 0, "Client id: " .. id)
-    stdscr:mvaddstr(1, 0, "Update    World State    Delay (ms)    Origin")
-    for i = 1, #log do
-        stdscr:mvaddstr(i + 1, 0, log[i].updateNum)
-        stdscr:mvaddstr (i + 1, 10, log[i].data:sub(0, 11))
-        stdscr:mvaddstr(i + 1, 25, log[i].delay)
-        stdscr:mvaddstr(i + 1, 39, log[i].origin)
-    end
-    stdscr:refresh ()
 end
+
+xpcall(main, err)
