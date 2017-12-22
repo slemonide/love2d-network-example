@@ -4,6 +4,8 @@
 
 xterm -e lua server.lua &
 
+sleep 1
+
 if [ "$1" == "" ]; then
 	max=10
 else

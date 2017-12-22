@@ -9,22 +9,22 @@ local id = tostring(math.random(100000,999999))
 local updateNum = 0
 
 -- connect
-udp:send(string.format("%d %s %s %s", os.time(), id, 'connect', "$"))
+udp:send(string.format("%d %s %s %s", math.floor(socket.gettime()*1000), id, 'connect', "$"))
 
 -- To display Lua errors, we must close curses to return to
 -- normal terminal mode, and then write the error to stdout.
-local function err (err)
-    curses.endwin ()
-    print "Caught an error:"
-    print (debug.traceback (err, 2))
-    os.exit (2)
+local function err(err)
+    curses.endwin()
+    print"Caught an error:"
+    print(debug.traceback(err, 2))
+    os.exit(2)
 end
 
-local stdscr = curses.initscr ()
+local stdscr = curses.initscr()
 
-curses.cbreak ()
-curses.echo (false)	-- not noecho !
-curses.nl (false)	-- not nonl !
+curses.cbreak()
+curses.echo(false)	-- not noecho !
+curses.nl(false)	-- not nonl !
 curses.curs_set(0)
 
 local log = {}
@@ -53,10 +53,12 @@ function main()
                         data = state,
                         time = time,
                         origin = origin,
-                        delay = os.time() - tonumber(time)
+                        delay = math.floor(socket.gettime()*1000) - tonumber(time)
                     })
                     shift_log()
                     updateNum = updateNum + 1
+
+                    udp:send(string.format("%d %s %s %s", math.floor(socket.gettime()*1000), id, 'set', "none"))
                 elseif (cmd == "id") then
                     id = params
                 else
@@ -72,14 +74,14 @@ function main()
                 msg = msg .. tostring(math.random(9))
             end
 
-            udp:send(string.format("%d %s %s %s", os.time(), id, 'set', msg))
+            udp:send(string.format("%d %s %s %s", math.floor(socket.gettime()*1000), id, 'set', msg))
         end
 
         stdscr:mvaddstr(0, 0, "Client id: " .. id)
         stdscr:mvaddstr(1, 0, "Update    World State    Delay (ms)    Origin    Size")
         for i = 1, #log do
-            stdscr:mvaddstr(i + 1, 0, log[i].updateNum)
-            stdscr:mvaddstr (i + 1, 10, log[i].data:sub(0, 11))
+            stdscr:mvaddstr(i + 1,  0, log[i].updateNum)
+            stdscr:mvaddstr(i + 1, 10, log[i].data:sub(0, 11))
             stdscr:mvaddstr(i + 1, 25, log[i].delay)
             stdscr:mvaddstr(i + 1, 39, log[i].origin)
             stdscr:mvaddstr(i + 1, 49, log[i].data:len())

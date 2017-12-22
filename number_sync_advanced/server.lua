@@ -11,21 +11,23 @@ local world = {
 }
 local numUpdates = 0
 local clients = {}
+local expect_response = {} -- Clients from which response is expected
+local timeout = 1000 -- how many ms to wait before getting rid of the timed out client
 
 -- To display Lua errors, we must close curses to return to
 -- normal terminal mode, and then write the error to stdout.
-local function err (err)
-    curses.endwin ()
+local function err(err)
+    curses.endwin()
     print "Caught an error:"
-    print (debug.traceback (err, 2))
-    os.exit (2)
+    print (debug.traceback(err, 2))
+    os.exit(2)
 end
 
-local stdscr = curses.initscr ()
+local stdscr = curses.initscr()
 
-curses.cbreak ()
-curses.echo (false)	-- not noecho !
-curses.nl (false)	-- not nonl !
+curses.cbreak()
+curses.echo(false)	-- not noecho !
+curses.nl(false)	-- not nonl !
 curses.curs_set(0)
 
 function main()
@@ -44,27 +46,41 @@ function main()
                 })
                 udp:sendto(string.format("id %d", #clients), ip, port)
             elseif (cmd == "set") then
-                world.state = parms
-                world.time = birth_time
-                world.origin = id
-                numUpdates = numUpdates + 1
+                if (clients[tonumber(id)]) then
+                    if (parms ~= "none") then
+                        world.state = parms
+                        world.time = birth_time
+                        world.origin = id
+                        numUpdates = numUpdates + 1
+                    end
+
+                    expect_response[tonumber(id)] = nil
+                end
             else
-                --err("Unknown command:", data)
+                error("Unknown command:", data)
             end
         end
 
         local numClients = 0
-        for _, client in ipairs(clients) do
+        for id, client in pairs(clients) do
             if (not client.state or (client.state and client.state ~= world.state)) then
                 udp:sendto(string.format("update %s %s %s", world.time, world.origin, world.state), client.ip, client.port)
+                expect_response[id] = expect_response[id] or math.floor(socket.gettime()*1000)
                 client.state = world.state
+            end
+            if expect_response[id] then
+                local dt = math.floor(socket.gettime()*1000) - expect_response[id]
+                if dt > timeout then
+                    clients[id] = nil
+                    expect_response[id] = nil
+                end
             end
 
             numClients = numClients + 1
         end
-        stdscr:mvaddstr (0, 0, "Number of clients: " .. numClients)
-        stdscr:mvaddstr (1, 0, "Updates received: " .. numUpdates)
-        stdscr:refresh ()
+        stdscr:mvaddstr(0, 0, "Number of clients: " .. numClients)
+        stdscr:mvaddstr(1, 0, "Updates received: " .. numUpdates)
+        stdscr:refresh()
     end
 end
 
