@@ -56,7 +56,7 @@ function main()
         local numClients = 0
         for _, client in ipairs(clients) do
             if (not client.state or (client.state and client.state ~= world.state)) then
-                udp:sendto(string.format("update %s %s %s", world.state, world.time, world.origin), client.ip, client.port)
+                udp:sendto(string.format("update %s %s %s", world.time, world.origin, world.state), client.ip, client.port)
                 client.state = world.state
             end
 

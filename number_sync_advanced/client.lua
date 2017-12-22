@@ -47,7 +47,7 @@ function main()
             if data then
                 local cmd, params = data:match("^(%S*) (.*)")
                 if (cmd == "update") then
-                    local state, time, origin = params:match("^(%S*) (%S*) (.*)")
+                    local time, origin, state = params:match("^(%S*) (%S*) (.*)")
                     table.insert(log, {
                         updateNum = updateNum,
                         data = state,
@@ -65,23 +65,24 @@ function main()
             end
         until not data
 
-        if (math.random() > 0.9998) then
+        if (math.random() > 0.9996) then
             local msg = ""
 
-            for i = 1, 1000 do
-                msg = msg .. tostring(math.random(99999999))
+            for i = 1, 9000 do
+                msg = msg .. tostring(math.random(9))
             end
 
             udp:send(string.format("%d %s %s %s", os.time(), id, 'set', msg))
         end
 
         stdscr:mvaddstr(0, 0, "Client id: " .. id)
-        stdscr:mvaddstr(1, 0, "Update    World State    Delay (ms)    Origin")
+        stdscr:mvaddstr(1, 0, "Update    World State    Delay (ms)    Origin    Size")
         for i = 1, #log do
             stdscr:mvaddstr(i + 1, 0, log[i].updateNum)
             stdscr:mvaddstr (i + 1, 10, log[i].data:sub(0, 11))
             stdscr:mvaddstr(i + 1, 25, log[i].delay)
             stdscr:mvaddstr(i + 1, 39, log[i].origin)
+            stdscr:mvaddstr(i + 1, 49, log[i].data:len())
         end
         stdscr:refresh ()
     end
